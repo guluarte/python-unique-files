@@ -9,7 +9,7 @@ import click
 import os
 from collections import defaultdict
 
-def find_duplicate_files(directory, min_size):
+def find_duplicate_files(directory, min_size, auto=False):
     """
     Finds files with the same name and similar file size in a directory.
     """
@@ -42,11 +42,19 @@ def find_duplicate_files(directory, min_size):
                     click.echo(f"  - Duplicate: {dup_filepath} ({dup_size} bytes)")
                     click.echo(f"  - Size difference: {size_diff_kb:.2f} KB")
 
-                    if click.confirm(
-                        f"Link '{os.path.basename(dup_filepath)}' to '{os.path.basename(original_filepath)}'? "
-                        f"This will delete the duplicate file.",
-                        default=False,
-                    ):
+                    perform_link = False
+                    if auto and size_diff_kb < 500:
+                        perform_link = True
+                        click.echo("Auto-linking files (size difference < 500KB).")
+                    elif not auto:
+                        if click.confirm(
+                            f"Link '{os.path.basename(dup_filepath)}' to '{os.path.basename(original_filepath)}'? "
+                            f"This will delete the duplicate file.",
+                            default=False,
+                        ):
+                            perform_link = True
+                    
+                    if perform_link:
                         try:
                             os.remove(dup_filepath)
                             os.symlink(original_filepath, dup_filepath)
@@ -60,11 +68,12 @@ def find_duplicate_files(directory, min_size):
 @click.command()
 @click.argument('directory', type=click.Path(exists=True, file_okay=False, resolve_path=True))
 @click.option('--min-size', default=10 * 1024 * 1024, help='Minimum file size in bytes to consider (default: 10MB)')
-def main(directory, min_size):
+@click.option('--auto', is_flag=True, default=False, help='Automatically link files with size difference < 500KB.')
+def main(directory, min_size, auto):
     """
     Finds files with the same name and similar file size in a directory.
     """
-    find_duplicate_files(directory, min_size)
+    find_duplicate_files(directory, min_size, auto)
 
 if __name__ == "__main__":
     main()
