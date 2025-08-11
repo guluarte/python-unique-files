@@ -91,9 +91,10 @@ def find_duplicates(directory, dry_run, min_size):
                 if dry_run:
                     click.echo(f"    (Dry run) Would remove and link to {original}")
                 else:
+                    click.echo(f"Removing {duplicate}")
                     os.remove(duplicate)
                     os.symlink(original, duplicate)
-                    click.echo(f"    -> Linked to {original}")
+                    click.echo(f"{duplicate} -> Linked to {original}")
 
 
 if __name__ == "__main__":
