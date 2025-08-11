@@ -66,10 +66,13 @@ def find_duplicates(directory, dry_run, min_size):
             if os.path.getsize(file_path) < min_size:
                 continue
 
+            click.echo(f"Processing: {file_path}")
             file_path_str = str(file_path)
             if file_path_str not in checksums:
                 checksums[file_path_str] = calculate_checksum(file_path)
                 click.echo(f"Checksummed: {file_path}")
+            else:
+                click.echo(f"Alredy Checksummed: {file_path}")
 
             checksum = checksums[file_path_str]
             if checksum not in files_by_checksum:
