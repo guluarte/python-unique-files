@@ -7,11 +7,8 @@
 
 import click
 import hashlib
-import json
 from pathlib import Path
 import os
-
-CHECKSUM_FILE = ".checksums.json"
 
 
 def calculate_checksum(file_path):
@@ -23,20 +20,21 @@ def calculate_checksum(file_path):
     return h.hexdigest()
 
 
-def load_checksums(directory):
-    """Loads the checksums from the checksum file."""
-    checksum_path = Path(directory) / CHECKSUM_FILE
-    if checksum_path.exists():
-        with open(checksum_path, "r") as f:
-            return json.load(f)
-    return {}
+def get_checksum_file_path(file_path):
+    """Returns the path to the checksum file for a given file."""
+    return Path(str(file_path) + ".sha256")
 
+def read_checksum(checksum_file_path):
+    """Reads the checksum from a checksum file if it exists."""
+    if checksum_file_path.exists():
+        with open(checksum_file_path, "r") as f:
+            return f.read().strip()
+    return None
 
-def save_checksums(directory, checksums):
-    """Saves the checksums to the checksum file."""
-    checksum_path = Path(directory) / CHECKSUM_FILE
-    with open(checksum_path, "w") as f:
-        json.dump(checksums, f, indent=4)
+def write_checksum(checksum_file_path, checksum):
+    """Saves the checksum to a file."""
+    with open(checksum_file_path, "w") as f:
+        f.write(checksum)
 
 
 @click.command()
@@ -50,36 +48,34 @@ def save_checksums(directory, checksums):
 def find_duplicates(directory, dry_run, min_size):
     """
     Finds duplicate files in a directory and its subdirectories,
-    creates symbolic links for them, and saves checksums to avoid re-calculating them.
-    A checksum file is created in each subdirectory.
+    creates symbolic links for them, and saves a checksum file for each file to avoid re-calculating them.
     """
     files_by_checksum = {}
 
     for root, _, files in os.walk(directory):
-        checksums = load_checksums(root)
-
         for filename in files:
             file_path = Path(root) / filename
-            if file_path.is_symlink() or filename == CHECKSUM_FILE:
+
+            # Check if the file is a symlink or a checksum file
+            if file_path.is_symlink() or str(file_path).endswith(".sha256"):
                 continue
 
             if os.path.getsize(file_path) < min_size:
                 continue
 
             click.echo(f"Processing: {file_path}")
-            file_path_str = str(file_path)
-            if file_path_str not in checksums:
-                checksums[file_path_str] = calculate_checksum(file_path)
-                click.echo(f"Checksummed: {file_path}")
-            else:
-                click.echo(f"Alredy Checksummed: {file_path}")
 
-            checksum = checksums[file_path_str]
+            checksum_file = get_checksum_file_path(file_path)
+            checksum = read_checksum(checksum_file)
+
+            if not checksum:
+                checksum = calculate_checksum(file_path)
+                write_checksum(checksum_file, checksum)
+                click.echo(f"Checksummed: {file_path}")
+
             if checksum not in files_by_checksum:
                 files_by_checksum[checksum] = []
-            files_by_checksum[checksum].append(file_path_str)
-
-        save_checksums(root, checksums)
+            files_by_checksum[checksum].append(str(file_path))
 
     for checksum, files in files_by_checksum.items():
         if len(files) > 1:
@@ -91,10 +87,9 @@ def find_duplicates(directory, dry_run, min_size):
                 if dry_run:
                     click.echo(f"    (Dry run) Would remove and link to {original}")
                 else:
-                    click.echo(f"Removing {duplicate}")
                     os.remove(duplicate)
                     os.symlink(original, duplicate)
-                    click.echo(f"{duplicate} -> Linked to {original}")
+                    click.echo(f"    -> Linked to {original}")
 
 
 if __name__ == "__main__":
