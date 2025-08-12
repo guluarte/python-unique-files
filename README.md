@@ -1,46 +1,58 @@
 # Python Unique Files Finder
 
-A Python script to find duplicate files within a specified directory and its subdirectories. It replaces duplicate files with symbolic links to the original file, thus saving disk space.
+This project contains two Python scripts to find and manage duplicate files within a specified directory and its subdirectories.
 
-## Features
+## Scripts
 
--   Finds duplicate files based on their SHA256 checksum.
--   Replaces duplicates with symbolic links.
--   Caches checksums in `.sha256` files to avoid re-calculation on subsequent runs.
--   Option to perform a dry run to see what changes would be made without actually modifying any files.
--   Option to set a minimum file size to consider, to avoid processing many small files.
+1.  **`find_duplicates.py`**: Finds files that are exact duplicates by comparing their SHA256 checksums.
+2.  **`find_potential_duplicates.py`**: Finds files that have the same name and similar file sizes, which are likely to be different versions of the same file.
 
-## Requirements
+Both scripts are designed to be run with `uv`, which automatically handles dependencies.
 
--   Python 3.12+
--   `uv`
+---
+## `find_duplicates.py` - Find Exact Duplicates
 
-The script is designed to be run as a single file using `uv`. `uv` will read the script dependencies from the script's header and create a virtual environment automatically.
+This script identifies files with identical content by calculating and comparing their SHA256 checksums. It can replace duplicate files with symbolic links to save disk space.
 
-You can install `uv` by following the official instructions: https://github.com/astral-sh/uv
-
-## Usage
+### Usage
 
 ```bash
 uv run find_duplicates.py [OPTIONS] DIRECTORY
 ```
 
-### Arguments
+### Options
 
--   `DIRECTORY`: The directory to scan for duplicate files.
+-   `--dry-run`: Perform a dry run to see what changes would be made without modifying any files.
+-   `--min-size BYTES`: The minimum file size in bytes to consider. Default is 1MB.
+
+---
+## `find_potential_duplicates.py` - Find Potential Duplicates by Name and Size
+
+This script finds files that have the same name and a similar file size. This is useful for finding different versions of the same file.
+
+### Usage
+
+```bash
+uv run find_potential_duplicates.py [OPTIONS] DIRECTORY
+```
 
 ### Options
 
--   `--dry-run`: If set, the script will only print the actions it would take without actually deleting files or creating symbolic links.
--   `--min-size BYTES`: The minimum file size in bytes to consider for checksumming and duplicate finding. The default is 1048576 bytes (1 MiB).
+-   `--min-size INTEGER`: Minimum file size in bytes to consider. Defaults to 10MB.
+-   `--auto`: Enable auto mode. Automatically links files if their size difference is less than 500KB.
+-   `--original-dir PATH`: Specify a directory to be preferred for original files.
+-   `--help`: Show the help message and exit.
 
-## How it works
+### How the "Original" File is Determined (`find_potential_duplicates.py`)
 
-The script traverses the given directory. For each file, it calculates a SHA256 checksum. To speed up subsequent runs, the checksum is stored in a separate file with a `.sha256` extension (e.g., `my_file.txt.sha256`).
+The script uses the following logic to decide which file to keep as the original:
 
-If files have the same checksum, they are considered duplicates. The script keeps the first file it encounters as the "original" and replaces all other duplicate files with a symbolic link pointing to the original.
+1.  **`--original-dir` specified**: If a file is found within this directory, it is chosen as the original. If multiple files are in that directory, the largest one is chosen.
+2.  **No `--original-dir`**: The largest file among the set of duplicates is chosen as the original.
 
-## Example
+## Examples
+
+### Find exact duplicates
 
 ```bash
 # Do a dry run on a directory with large video files
@@ -48,4 +60,17 @@ uv run find_duplicates.py --dry-run --min-size 50000000 /path/to/videos
 
 # Run for real on a directory of documents
 uv run find_duplicates.py /path/to/documents
+```
+
+### Find potential duplicates by name and size
+
+```bash
+# Interactive mode on a directory
+uv run find_potential_duplicates.py /home/user/documents
+
+# Auto mode, linking files with < 500KB difference
+uv run find_potential_duplicates.py --auto /home/user/downloads
+
+# Prefer originals from a specific directory
+uv run find_potential_duplicates.py --original-dir /home/user/all_photos/originals /home/user/all_photos
 ```

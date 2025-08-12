@@ -24,12 +24,14 @@ def get_checksum_file_path(file_path):
     """Returns the path to the checksum file for a given file."""
     return Path(str(file_path) + ".sha256")
 
+
 def read_checksum(checksum_file_path):
     """Reads the checksum from a checksum file if it exists."""
     if checksum_file_path.exists():
         with open(checksum_file_path, "r") as f:
             return f.read().strip()
     return None
+
 
 def write_checksum(checksum_file_path, checksum):
     """Saves the checksum to a file."""
