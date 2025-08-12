@@ -89,6 +89,14 @@ def main(directory, min_size, auto, original_dir):
     """
     Finds files with the same name and similar file size in a directory.
     """
+    click.echo("Starting duplicate file finder with the following settings:")
+    click.echo(f"  - Directory to scan: {directory}")
+    click.echo(f"  - Minimum file size: {min_size} bytes")
+    click.echo(f"  - Auto mode: {'Enabled' if auto else 'Disabled'}")
+    if original_dir:
+        click.echo(f"  - Original directory: {original_dir}")
+    click.echo("-" * 20)
+
     find_duplicate_files(directory, min_size, auto, original_dir)
 
 if __name__ == "__main__":
