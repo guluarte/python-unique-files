@@ -9,6 +9,7 @@ import click
 import os
 from collections import defaultdict
 
+
 def find_duplicate_files(directory, min_size, auto=False, original_dir=None):
     """
     Finds files with the same name and similar file size in a directory.
@@ -30,7 +31,7 @@ def find_duplicate_files(directory, min_size, auto=False, original_dir=None):
     for filename, files in files_by_name.items():
         if len(files) > 1:
             original_file_tuple = None
-            
+
             if original_dir:
                 files_in_original_dir = []
                 for f in files:
@@ -46,14 +47,16 @@ def find_duplicate_files(directory, min_size, auto=False, original_dir=None):
                 original_file_tuple = files[0]
 
             original_filepath, original_size = original_file_tuple
-            
+
             duplicates = [f for f in files if f[0] != original_filepath]
 
             for dup_filepath, dup_size in duplicates:
                 if abs(original_size - dup_size) < 1024 * 1024:
                     size_diff_kb = abs(original_size - dup_size) / 1024
                     click.echo("Found potential duplicates:")
-                    click.echo(f"  - Original:  {original_filepath} ({original_size} bytes)")
+                    click.echo(
+                        f"  - Original:  {original_filepath} ({original_size} bytes)"
+                    )
                     click.echo(f"  - Duplicate: {dup_filepath} ({dup_size} bytes)")
                     click.echo(f"  - Size difference: {size_diff_kb:.2f} KB")
 
@@ -68,7 +71,7 @@ def find_duplicate_files(directory, min_size, auto=False, original_dir=None):
                             default=False,
                         ):
                             perform_link = True
-                    
+
                     if perform_link:
                         try:
                             os.remove(dup_filepath)
@@ -81,10 +84,25 @@ def find_duplicate_files(directory, min_size, auto=False, original_dir=None):
 
 
 @click.command()
-@click.argument('directory', type=click.Path(exists=True, file_okay=False, resolve_path=True))
-@click.option('--min-size', default=10 * 1024 * 1024, help='Minimum file size in bytes to consider (default: 10MB)')
-@click.option('--auto', is_flag=True, default=False, help='Automatically link files with size difference < 500KB.')
-@click.option('--original-dir', type=click.Path(exists=True, file_okay=False, resolve_path=True), help='Directory to prefer as original.')
+@click.argument(
+    "directory", type=click.Path(exists=True, file_okay=False, resolve_path=True)
+)
+@click.option(
+    "--min-size",
+    default=10 * 1024 * 1024,
+    help="Minimum file size in bytes to consider (default: 10MB)",
+)
+@click.option(
+    "--auto",
+    is_flag=True,
+    default=False,
+    help="Automatically link files with size difference < 500KB.",
+)
+@click.option(
+    "--original-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Directory to prefer as original.",
+)
 def main(directory, min_size, auto, original_dir):
     """
     Finds files with the same name and similar file size in a directory.
@@ -98,6 +116,7 @@ def main(directory, min_size, auto, original_dir):
     click.echo("-" * 20)
 
     find_duplicate_files(directory, min_size, auto, original_dir)
+
 
 if __name__ == "__main__":
     main()
